@@ -17,6 +17,19 @@
 // #define HOP_SIZE 1024
 #define HOP_SIZE 1323 // 30ms à 44100 Hz
 
+#define CONVERT(freqA, freqB, num1, num2, num3)\
+    if (freqB < 1220) {\
+        return num1;\
+    } else if(freqB < 1340){\
+        return num2;\
+    } else if(freqB < 1485){\
+        return num3;\
+    } else{\
+        fprintf(stderr, "%d/%d Hz ne correspond à aucun numéro\n", freqA, freqB);\
+        return 'X';\
+    }\
+
+
 static gnuplot_ctrl *h;
 
 
@@ -152,7 +165,24 @@ fftw_complex data_in[sfinfo.samplerate];
 fftw_complex data_out[sfinfo.samplerate];
 plan = fftw_plan_dft_1d(sfinfo.samplerate, data_in, data_out, FFTW_FORWARD, FFTW_ESTIMATE);
 
+char getNumber(int freqA, int freqB){
+    if (freqA > freqB) {
+        int tmp = freqA;
+        freqA = freqB;
+        freqB = tmp;
+    }
+    if (freqA < 710) {
+        CONVERT(freqA, freqB, '1', '2', '3');
+    } else if(freqA < 780) {
+        CONVERT(freqA, freqB, '4', '5', '6');
+    } else if(freqA < 860){
+        CONVERT(freqA, freqB, '7', '8', '9');
+    } else if(freqA < 950){
+        CONVERT(freqA, freqB, '*', '0', '#');
+    } else{
 
+    }
+}
 
 
 // fftw_real s[FRAME_SIZE]; /* domaine temporel */

@@ -10,6 +10,12 @@
 
 #include "gnuplot_i.h"
 
+#define PLOT 1
+
+
+#define EPSILON 30
+#define NUM_SIZE 20
+
 /* taille de la fenetre */
 // #define	FRAME_SIZE 4096
 #define	FRAME_SIZE 1764 // 40ms à 44100 Hz
@@ -18,11 +24,11 @@
 #define HOP_SIZE 1323 // 30ms à 44100 Hz
 
 #define CONVERT(freqA, freqB, num1, num2, num3)\
-    if (freqB < 1220) {\
+    if (abs(freqB - 1209) < EPSILON ) {\
         return num1;\
-    } else if(freqB < 1340){\
+    } else if(abs(freqB - 1336) < EPSILON){\
         return num2;\
-    } else if(freqB < 1485){\
+    } else if(abs(freqB - 1477) < EPSILON){\
         return num3;\
     } else{\
         fprintf(stderr, "%d/%d Hz ne correspond à aucun numéro\n", freqA, freqB);\
@@ -112,6 +118,27 @@ read_samples (SNDFILE * infile, double * buffer, int channels)
     return read_n_samples (infile, buffer, channels, HOP_SIZE);
 }
 
+char getNumber(int freqA, int freqB){
+    if (freqA > freqB) {
+        int tmp = freqA;
+        freqA = freqB;
+        freqB = tmp;
+    }
+    if (abs(freqA - 710) < EPSILON) {
+        CONVERT(freqA, freqB, '1', '2', '3');
+    } else if(abs(freqA - 780) < EPSILON) {
+        CONVERT(freqA, freqB, '4', '5', '6');
+    } else if(abs(freqA - 860) < EPSILON){
+        CONVERT(freqA, freqB, '7', '8', '9');
+    } else if(abs(freqA - 950) < EPSILON){
+        CONVERT(freqA, freqB, '*', '0', '#');
+    } else{
+        fprintf(stderr, "%d/%d Hz ne correspond à aucun numéro\n", freqA, freqB);
+        return 'X';
+    }
+}
+
+
 int
 main (int argc, char * argv [])
 {	char 		*progname, *infilename;
@@ -165,24 +192,6 @@ fftw_complex data_in[sfinfo.samplerate];
 fftw_complex data_out[sfinfo.samplerate];
 plan = fftw_plan_dft_1d(sfinfo.samplerate, data_in, data_out, FFTW_FORWARD, FFTW_ESTIMATE);
 
-char getNumber(int freqA, int freqB){
-    if (freqA > freqB) {
-        int tmp = freqA;
-        freqA = freqB;
-        freqB = tmp;
-    }
-    if (freqA < 710) {
-        CONVERT(freqA, freqB, '1', '2', '3');
-    } else if(freqA < 780) {
-        CONVERT(freqA, freqB, '4', '5', '6');
-    } else if(freqA < 860){
-        CONVERT(freqA, freqB, '7', '8', '9');
-    } else if(freqA < 950){
-        CONVERT(freqA, freqB, '*', '0', '#');
-    } else{
-
-    }
-}
 
 
 // fftw_real s[FRAME_SIZE]; /* domaine temporel */
@@ -192,6 +201,9 @@ char getNumber(int freqA, int freqB){
 for (int i = FRAME_SIZE; i < sfinfo.samplerate; i++) {
     data_in[i] = 0;
 }
+int afterSilence = 1;
+int cpt = 0;
+char num[NUM_SIZE];
 while (read_samples (infile, new_buffer, sfinfo.channels)==1)
 {
     /* Process Samples */
@@ -219,7 +231,7 @@ while (read_samples (infile, new_buffer, sfinfo.channels)==1)
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         amp[i] = cabs(data_out[i]);
         phase[i] = carg(data_out[i]);
-        if (i < FRAME_SIZE/2) {
+        if (i < FRAME_SIZE) {
             if (amp[ind_max] < amp[i]) {
                 ind_max2 = ind_max;
                 ind_max = i;
@@ -231,14 +243,35 @@ while (read_samples (infile, new_buffer, sfinfo.channels)==1)
 
     printf("frequence = %d / %d\n", ind_max, ind_max2);
 
+    if (ind_max == 0 || ind_max2 == 0) {
+        afterSilence = 1;
+        printf("SILENCE\n");
+    } else {
+        char c_num = getNumber(ind_max, ind_max2);
+        printf("NUM : %c\n", c_num);
+        if (afterSilence) {
+            afterSilence = 0;
+            num[cpt] = c_num;
+            cpt++;
+            num[cpt] = '\0';
+            printf("\t%s\n", num);
+        }
+    }
+
     /* PLOT */
+    #if PLOT == 1
     gnuplot_resetplot(h);
     gnuplot_plot_x(h,amp,FRAME_SIZE,"temporal frame");
     // gnuplot_plot_x(h,phase,FRAME_SIZE,"phase");
     sleep(1);
+    #endif
 
     nb_frames++;
 }
+
+num[cpt] = '\0';
+printf("numero : %s\n", num);
+
 fftw_destroy_plan (plan);
 
 sf_close (infile) ;

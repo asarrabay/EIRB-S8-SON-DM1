@@ -41,6 +41,14 @@ spectral : $(LIB_OBJ) $(LIB_SRC) spectral.c
 	$(CC) $(CFLAGS) $(LIB_OBJ) spectral.c -o $(EXECS) -lsndfile  -lvorbis -lvorbisenc -logg -lFLAC -lm -lfftw3
 
 test:
+	./spectral telbase.wav 2> log.txt;
+	./spectral telA.wav 2>> log.txt;
+	./spectral telB.wav 2>> log.txt;
+	./spectral telC.wav 2>> log.txt;
+	./spectral telD.wav 2>> log.txt;
+	./spectral telE.wav 2>> log.txt;
+
+test-verbose:
 	echo "#############################################################################" > log.txt
 	echo "telBase" >> log.txt
 	./spectral telbase.wav 2>> log.txt;

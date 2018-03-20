@@ -138,6 +138,16 @@ char getNumber(int freqA, int freqB){
     }
 }
 
+//Exercice 2
+float rms(double *buffer, int size)
+{
+  float s = 0;
+  for (int k =0; k<size; k++)
+  {
+    s += buffer[k] * buffer[k];
+  }
+  return s/size;
+}
 
 int
 main (int argc, char * argv [])
@@ -219,9 +229,8 @@ while (read_samples (infile, new_buffer, sfinfo.channels)==1)
 
     /* hop size */
     fill_buffer(buffer, new_buffer);
+    fprintf(stderr,"RMS %f\n",rms(buffer,FRAME_SIZE));
 
-
-    /* TODO */
     for (i=0; i<FRAME_SIZE; i++){
         // data_in[i] = buffer[i];
         // Fenetre de Hann :
@@ -229,24 +238,21 @@ while (read_samples (infile, new_buffer, sfinfo.channels)==1)
     }
     fftw_execute (plan);
 
-    // complex S[FRAME_SIZE];
+
     double amp[FRAME_SIZE];
-    double phase[FRAME_SIZE];
     int ind_max = -1;
     int ind_max2 = -1;
-    double max_val = amp[0];
-    // dft(buffer, S);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         amp[i] = cabs(data_out[i]);
-        phase[i] = carg(data_out[i]);
-        if (i < FRAME_SIZE) {
-        }
     }
-    for (size_t i = 0; i < FRAME_SIZE; i++) {
+
+
+
+
+    for (int i = 0; i < FRAME_SIZE; i++) {
         if (amp[i] > 30.0 && amp[i-1] <= amp[i] && amp[i] > amp[i+1]) {
             fprintf(stderr, "FREQUENCE ============================= %d : %lf\n", i, amp[i]);
             if (ind_max == -1) {
-                // ind_max2 = ind_max;
                 ind_max = i;
             } else{
                 ind_max2 = i;
@@ -271,15 +277,11 @@ while (read_samples (infile, new_buffer, sfinfo.channels)==1)
         }
     }
 
-    /* PLOT */
-    // #if PLOT == 1$
     if (PLOT) {
         gnuplot_resetplot(h);
         gnuplot_plot_x(h,amp,FRAME_SIZE,"temporal frame");
-        // gnuplot_plot_x(h,phase,FRAME_SIZE,"phase");
         sleep(1);
     }
-    // #endif
 
     nb_frames++;
 }
